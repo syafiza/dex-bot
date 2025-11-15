@@ -50,27 +50,40 @@ Unlike rule-based bots, LPing uses **reinforcement learning**, **NLP**, **comput
 
 ## 🧩 Modular Architecture
 lping/
-├── agents/ # Autonomous AI agents
-│ ├── scout_agent.py # Discovers new memecoins
-│ ├── arb_agent.py # Finds cross-DEX arbitrage
-│ ├── trader_agent.py # Executes buy/sell/liquidity actions
-│ └── risk_agent.py # Manages portfolio risk & stop-loss
-├── ai_models/ # ML/DL/NLP models
-│ ├── price_predictor/ # LSTM + Transformer for price forecasting
-│ ├── sentiment_analyzer/ # BERT-based social media sentiment
-│ ├── chart_vision/ # CNN for TA pattern detection
-│ └── anomaly_detector/ # Autoencoder for rug-pull detection
-├── dex_adapters/ # Unified interfaces for DEXs
-│ ├── raydium.py
-│ ├── meteora.py
-│ ├── orca.py
-│ └── pumpfun.py
-├── data/ # Data pipeline & storage
-│ ├── solana_streamer.py # WebSocket + RPC listener
-│ └── feature_engine.py # Real-time feature extraction
-├── executor/ # Secure transaction signing & broadcasting
-├── config/ # Environment, wallets, API keys
-└── main.py # Orchestration & agent coordinat
+├── agents/                 # Autonomous AI agents with distinct roles
+│   ├── scout_agent.py      # Discovers & filters new memecoins using on-chain + social signals
+│   ├── arb_agent.py        # Detects & evaluates cross-DEX arbitrage opportunities
+│   ├── trader_agent.py     # Manages entry/exit, position sizing, and liquidity provision
+│   └── risk_agent.py       # Enforces stop-loss, scam detection, and portfolio limits
+│
+├── ai_models/              # Machine learning & AI subsystems
+│   ├── price_predictor/    # Time-series models (LSTM, Transformer) for short-term forecasting
+│   ├── sentiment_analyzer/ # NLP pipeline for social media & news sentiment (BERT, FinBERT)
+│   ├── chart_vision/       # CNN-based candlestick pattern recognition
+│   └── anomaly_detector/   # Unsupervised models (VAE, Isolation Forest) for rug-pull detection
+│
+├── dex_adapters/           # Unified abstraction layer for DEX interactions
+│   ├── raydium.py          # Raydium AMM & limit order book integration
+│   ├── meteora.py          # Meteora DLMM vault & liquidity APIs
+│   ├── orca.py             # Orca Whirlpools (concentrated liquidity) support
+│   └── pumpfun.py          # Pump.fun token creation & bonding curve trading
+│
+├── data/                   # Real-time data ingestion & feature engineering
+│   ├── solana_streamer.py  # WebSocket listener for Solana program logs & trades
+│   ├── social_feed.py      # Aggregates Twitter, Telegram, Discord via APIs
+│   └── feature_engine.py   # Generates ML-ready features (volatility, liquidity delta, etc.)
+│
+├── executor/               # Secure transaction handling
+│   ├── wallet.py           # Wallet management (Keypair, Ledger support planned)
+│   └── tx_builder.py       # Builds + signs optimized Solana transactions
+│
+├── coordination/           # Agent orchestration & planning
+│   └── scheduler.py        # Task prioritization, conflict resolution, and workflow planning
+│
+├── config/                 # Environment, secrets, and strategy parameters
+│   └── settings.py         # Centralized configuration (loaded at runtime)
+│
+└── main.py                 # System entry point: initializes agents, starts data loops
 
 
 
