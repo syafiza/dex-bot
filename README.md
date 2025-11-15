@@ -85,9 +85,12 @@ lping/
 │
 └── main.py                 # System entry point: initializes agents, starts data loops
 
-
-
 ---
+🔗 Key Principles
+Plug-and-Play DEXs: Add a new DEX by implementing a standard adapter interface.
+Model Swappability: Replace price_predictor/ with your own model without touching agents.
+Agent Isolation: Agents operate independently—failure in one doesn’t crash the whole system.
+Async-First: Built on asyncio and Ray for high-throughput, low-latency execution.
 
 ## 🚀 Key Features
 
