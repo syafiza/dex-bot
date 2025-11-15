@@ -1,62 +1,58 @@
-# 🤖 LPing – Agentic AI Trading Bot for Solana Memecoins
+# 🚀 LPing Agentic AI  
+### Intelligent Memecoin Trading & Cross-DEX Arbitrage on Solana  
 
-> *Autonomous liquidity-providing & arbitrage bot for Solana memecoins across Raydium, Orca, Pump.fun, and Eterna.*
+[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)  
+[![Solana](https://img.shields.io/badge/Blockchain-Solana-9945FF?logo=solana)](https://solana.com)  
+[![AI-Powered](https://img.shields.io/badge/AI-Agentic-blueviolet)](https://arxiv.org/abs/2312.13010)
 
-![Solana](https://img.shields.io/badge/Solana-Black?logo=solana&logoColor=white)
-![Python](https://img.shields.io/badge/Python-3.9%2B-blue?logo=python)
-![License](https://img.shields.io/badge/License-MIT-green)
-
-**LPing** is an experimental, AI-driven trading agent designed to:
-- **Provide liquidity** to emerging Solana memecoins.
-- **Detect & execute arbitrage** opportunities across Raydium, Orca, Pump.fun (via PumpSwap), and Eterna.
-- **Autonomously manage risk** using on-chain signals, price volatility filters, and profit thresholds.
-
-Built for researchers, quants, and degens who believe the future of DeFi is *autonomous, fast, and memetic*.
+> **LPing Agentic AI** is an autonomous, AI-driven trading agent that hunts for high-velocity Solana memecoins across Raydium, Meteora, Orca, and Pump.fun (via PumpSwap), executes strategic LP positions, and captures real-time arbitrage opportunities—all powered by agentic reasoning and machine learning.
 
 ---
 
-## 🚀 Features
+## 🌟 Features
 
-- 🔁 **Cross-DEX Arbitrage Engine**: Scans for price discrepancies in real-time across:
-  - [Raydium](https://raydium.io)
-  - [Orca](https://www.orca.so)
-  - [Pump.fun](https://pump.fun) (via PumpSwap API & on-chain contracts)
-  - [Eterna](https://eternafinance.com)
-- 💧 **Auto-LPing**: Dynamically provide liquidity to new or trending memecoins with configurable risk parameters.
-- 🧠 **Agentic AI Layer**: Uses lightweight LLM-inspired heuristics (or optional LLM integration) to decide when to enter/exit positions based on social sentiment, volume spikes, and rug-pull signals.
-- ⚡ **Low-latency Solana RPC**: Optimized transaction bundling and priority fees for fast execution.
-- 🛡️ **Safety First**: Built-in slippage control, max-loss limits, and scam token filters (e.g., blacklisted creators, locked liquidity checks).
+- **Multi-DEX Memecoin Sniper**:  
+  Monitors new token launches on Pump.fun and liquidity pools on Raydium, Meteora, and Orca in real time.
+
+- **AI-Powered Opportunity Detection**:  
+  Uses lightweight ML models and rule-based heuristics to filter high-potential memecoins based on:
+  - Liquidity depth
+  - Social sentiment (via on-chain + off-chain signals)
+  - Price volatility
+  - Holder concentration
+
+- **Cross-DEX Arbitrage Engine**:  
+  Scans price discrepancies between Raydium ↔ Meteora ↔ Orca ↔ PumpSwap and executes atomic arbitrage trades when profitable after gas and slippage.
+
+- **Autonomous LP Management**:  
+  Automatically adds/removes liquidity in optimal pools and harvests fees—balancing risk and yield.
+
+- **Agentic Architecture**:  
+  Built with a modular "agent" design:
+  - **Scout Agent**: Finds new tokens
+  - **Signal Agent**: Scores opportunities
+  - **Executor Agent**: Trades & arbitrages
+  - **Risk Agent**: Enforces stop-loss and position limits
+
+- **Gas-Optimized Solana Integration**:  
+  Uses Solana Web3.js + Anchor-compatible RPC calls with priority fees for fast execution.
 
 ---
 
-## ⚠️ Disclaimer
+## ⚙️ Tech Stack
 
-> **This is experimental software.**  
-> - Not financial advice.  
-> - Memecoins are extremely volatile and high-risk.  
-> - Arbitrage opportunities may be fleeting or unprofitable after fees.  
-> - Use at your own risk. Test thoroughly on Devnet first.
-
-The authors are not liable for any financial losses.
-
----
-
-## 🛠️ Tech Stack
-
-- **Language**: Python 3.9+
-- **Solana SDK**: `solana-py`, `anchorpy`
-- **DEX Integrations**: Custom CLMM (Concentrated Liquidity) & AMM wrappers
-- **Data Sources**: 
-  - Solana RPC (Helius or QuickNode recommended)
-  - Birdeye, DexScreener, Pump.fun API
-- **AI/Logic**: Rule-based agent with optional LLM (e.g., Ollama, OpenRouter) for signal interpretation
-- **Task Parallelism**: `asyncio`, `concurrent.futures`
+- **Blockchain**: Solana (mainnet & devnet)
+- **DEXs Supported**: Raydium, Meteora, Orca, PumpSwap (Pump.fun)
+- **Languages**: Python (core logic), Rust (optional high-performance modules)
+- **AI/ML**: Scikit-learn, lightweight transformers, real-time feature pipelines
+- **Infrastructure**: Async I/O, WebSockets (for DEX events), Redis (caching)
+- **Wallet**: Phantom-compatible keypair or Ledger (via local signer)
 
 ---
 
 ## 📦 Installation
 
-1. Clone the repo:
-```bash
-git clone https://github.com/syafiza/LPing-agentic-AI.git
-cd LPing-agentic-AI
+1. **Clone the repo**
+   ```bash
+   git clone https://github.com/syafiza/LPing-agentic-AI.git
+   cd LPing-agentic-AI
