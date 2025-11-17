@@ -9,18 +9,21 @@ Leadership & Strategy Layer
 Commander-in-Chief: Orchestrates system-wide objectives, capital allocation, and strategic pivots using reinforcement learning and predictive analytics
 Quantitative Strategist: Develops and backtests alpha-generating models through deep learning and statistical arbitrage frameworks
 Risk Assessor: Implements dynamic risk controls using real-time volatility modeling and black swan detection systems
+
 Intelligence & Analysis Layer
 On-Chain Analyst: Processes blockchain data streams using graph neural networks to track whale movements and liquidity shifts
 Social Sentiment Analyst: Monitors global social platforms with transformer-based NLP for narrative emergence detection
 Liquidity Pool Analyst: Optimizes LP positioning through impermanent loss modeling and yield forecasting
 Arbitrage Scout: Identifies cross-DEX opportunities using graph theory and real-time price discrepancy algorithms
 Sniper Bot: Executes new launch entries with computer vision-assisted chart pattern recognition and MEV-resistant timing
+
 Execution & Operations Layer
 Execution Specialist: Implements gas-optimized trade routing across all supported DEXs with TWAP/VWAP algorithms
 Data Engineer: Maintains PostgreSQL data pipelines with real-time ingestion from blockchain and social APIs
 Security Auditor: Performs real-time smart contract vetting using bytecode analysis and honeypot detection models
 Treasury Manager: Automates profit distribution (80% to Phantom wallet every 6 hours) with minimum 1.6 SOL reserve enforcement
 Communications Coordinator: Manages A2A protocol communications and maintains audit logs through secure message routing
+
 Technical Specifications
 AI/ML Stack
 Reinforcement Learning: Strategy optimization and execution parameter tuning
