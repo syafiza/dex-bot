@@ -1,7 +1,7 @@
 use anyhow::Result;
 use crate::models::Pair;
 use chrono::Utc;
-use std::fs::{OpenOptions, File};
+use std::fs::OpenOptions;
 use std::io::Write;
 use serde_json::json;
 
