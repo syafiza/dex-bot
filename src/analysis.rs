@@ -1,5 +1,6 @@
 use crate::models::Pair;
 use crate::config::Config;
+use crate::rugcheck::RugCheckResponse;
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum MarketPattern {
@@ -8,25 +9,38 @@ pub enum MarketPattern {
     StableTier1,
     FakeVolume,
     Blacklisted,
+    RugcheckRisk,
+    BundledSupply,
     Unknown,
 }
 
 pub struct AnalysisEngine;
 
 impl AnalysisEngine {
-    pub fn analyze_pair(pair: &Pair, config: &Config) -> MarketPattern {
+    pub fn analyze_pair(pair: &Pair, config: &Config, rug_report: Option<&RugCheckResponse>) -> MarketPattern {
         // 1. Check Blacklist
         if config.blacklist.tokens.contains(&pair.pair_address) {
             return MarketPattern::Blacklisted;
         }
-        
-        // Note: Dexscreener doesn't always provide a specific 'Dev' address in the basic pair response,
-        // but if it were in the token info, we would check it here. 
-        // For now, we'll assume the user might blacklist specific base token addresses as 'dev' proxies.
 
-        // 2. Fake Volume Detection (Wash Trading)
-        // Heuristic: Volume/Liquidity Ratio (VLR). 
-        // If volume is 50x higher than liquidity, it's highly likely to be wash trading.
+        // 2. Rugcheck Security Check
+        if let Some(report) = rug_report {
+            if config.rugcheck.only_good && report.status != "good" {
+                return MarketPattern::RugcheckRisk;
+            }
+
+            // 3. Bundled Supply Detection
+            // Using rugcheck's bundle ratio if available, or analyzing top holder concentrations
+            if let Some(meta) = &report.file_meta {
+                if let Some(ratio) = meta.bundle_ratio {
+                    if ratio * 100.0 > config.filters.max_bundled_supply_percent {
+                        return MarketPattern::BundledSupply;
+                    }
+                }
+            }
+        }
+
+        // 4. Fake Volume Detection (Wash Trading)
         if let Some(liq) = &pair.liquidity {
             if let Some(liq_usd) = liq.usd {
                 if liq_usd > 0.0 {
@@ -38,14 +52,14 @@ impl AnalysisEngine {
             }
         }
 
-        // 3. Apply Advanced Filters from Config
+        // 5. Apply Advanced Filters from Config
         if let Some(liq) = &pair.liquidity {
             if let Some(liq_usd) = liq.usd {
                 if liq_usd < config.filters.min_liquidity_usd {
-                    return MarketPattern::Unknown; // Filtered out
+                    return MarketPattern::Unknown;
                 }
             } else {
-                return MarketPattern::Unknown; // No liquidity data
+                return MarketPattern::Unknown;
             }
         }
 
@@ -59,23 +73,19 @@ impl AnalysisEngine {
             }
         }
 
-        // 4. Pattern Heuristics
-        
-        // Rug Candidates (Still useful as a secondary check)
+        // 6. Pattern Heuristics
         if let Some(m5_change) = pair.price_change.m5 {
             if m5_change < -50.0 {
                 return MarketPattern::RugCandidate;
             }
         }
 
-        // Pump Candidates
         if let Some(m5_change) = pair.price_change.m5 {
             if m5_change > 20.0 {
                 return MarketPattern::PumpCandidate;
             }
         }
 
-        // Tier-1 Candidates
         if let Some(mcap) = pair.market_cap {
             if mcap > 10_000_000.0 {
                 if let Some(liq) = &pair.liquidity {
