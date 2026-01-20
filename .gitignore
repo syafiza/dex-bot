@@ -1,0 +1,8 @@
+/target
+**/*.rs.bk
+Cargo.lock
+bin/
+Generated.mtx
+/dex_data.jsonl
+/dex_bot.db
+.env
