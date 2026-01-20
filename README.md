@@ -16,52 +16,37 @@ Built with a focus on speed, safety, and 100% Rust portability.
 - **Persistent Metrics**: Logs all data to `dex_data.jsonl` for historical analysis and AI model training.
 - **Async Architecture**: Powered by `tokio` for multi-threaded, non-blocking execution.
 
-## 🛠 Project Structure
+## 🏁 Launch Guide
 
-- `src/main.rs`: Core execution loop and orchestrator.
-- `src/config.rs`: Professional-grade configuration (Filters, Blacklists, Queries).
-- `src/analysis.rs`: Heuristic-based logic engine for market pattern detection.
-- `src/client.rs`: Async API client for DexScreener.
-- `src/models.rs`: Type-safe bindings for DexScreener API responses.
-- `src/storage.rs`: High-performance JSONL persistence layer.
+### 1. Prerequisites
+- [Rust](https://www.rust-lang.org/tools/install) installed.
+- A Telegram Bot (create via [@BotFather](https://t.me/botfather)).
+- Your Telegram Chat ID (get via [@userinfobot](https://t.me/userinfobot)).
 
-## 🏁 Getting Started
+### 2. Configuration
+Open `src/main.rs` and update the `TelegramConfig` section with your credentials:
 
-### Prerequisites
-- [Rust](https://www.rust-lang.org/tools/install) (latest stable)
-
-### Installation
-```bash
-git clone https://github.com/syafiza/dex-bot.git
-cd dex-bot
+```rust
+telegram: TelegramConfig {
+    bot_token: "YOUR_BOT_TOKEN".to_string(),
+    chat_id: "YOUR_CHAT_ID".to_string(),
+    bonkbot_ref: "your_ref".to_string(),
+},
 ```
 
-### Running the Bot
+### 3. Build & Run
 ```bash
 cargo run --release
 ```
 
-## ⚙️ Configuration
+## 🛠 Project Structure (Unified)
+- `src/main.rs`: Contains the entire system logic (Scanner, Analysis, Security, Execution).
+- `dex_data.jsonl`: Local metrics log for all scanned tokens.
 
-To modify filters, add tokens to the blacklist, or change scan queries, edit [src/config.rs](file:///c:/Users/admin/OneDrive/Documents/AI%20Research/dex-bot/src/config.rs):
-
-```rust
-// Example config logic in src/config.rs
-pub fn new() -> Self {
-    Self {
-        filters: Filters {
-            min_liquidity_usd: 1000.0,
-            max_vlr: 50.0, // Flag if Volume/Liquidity > 50
-            ..
-        },
-        blacklist: Blacklist {
-            tokens: vec!["...".to_string()],
-            ..
-        },
-        queries: vec!["pump".to_string(), "pepe".to_string()],
-    }
-}
-```
+## ⚙️ Security Heuristics
+- **Rugcheck.xyz**: Only "Good" status contracts are alerted.
+- **Bundle Detection**: Automatic skip if >25% supply is clustered.
+- **Fake Volume**: Flags turnover that exceeds liquidity by 50x.
 
 ## 📊 Data Output
 The bot generates `dex_data.jsonl` in the root directory. Each line is a JSON object containing snapshot metrics of the pairs identified by the bot, perfect for further data science or pattern training.
