@@ -16,25 +16,25 @@ Built with a focus on speed, safety, and 100% Rust portability.
 - **Persistent Metrics**: Logs all data to `dex_data.jsonl` for historical analysis and AI model training.
 - **Async Architecture**: Powered by `tokio` for multi-threaded, non-blocking execution.
 
-### 2. Configuration
-Open `src/main.rs` and update the `Config` section, or use a `.env` file:
+### 🏁 Launch Guide (Python - Recommended for Windows)
+Due to toolchain requirements for the high-performance Rust core, we recommend using the **Python version** for immediate Paper Trading on Windows.
 
-```rust
-// PostgreSQL URL
-database: DatabaseConfig {
-    url: "postgres://user:pass@localhost/db".to_string(),
-},
-// Paper Trading Settings
-paper_trading: PaperTradingConfig {
-    enabled: true,
-    buy_amount_sol: 0.1,
-    take_profit_percent: 50.0,
-    stop_loss_percent: 25.0,
-},
-```
+1.  **Install dependencies**:
+    ```bash
+    pip install requests python-dotenv colorama
+    ```
+2.  **Configure**: Create a `.env` file with:
+    ```env
+    TELEGRAM_BOT_TOKEN=your_token
+    TELEGRAM_CHAT_ID=your_id
+    ```
+3.  **Run**:
+    ```bash
+    python bot.py
+    ```
 
-### 3. Build & Run
-**Standard Mode (Scanner + Paper Trading):**
+### 🦀 Rust Implementation (Advanced)
+The high-performance Rust core is available for Linux/WSL environments or systems with a full C++ Build Toolchain.
 ```bash
 cargo run --release
 ```

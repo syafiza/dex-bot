@@ -7,8 +7,6 @@ use std::fs::OpenOptions;
 use std::io::Write;
 use std::sync::Arc;
 use std::time::Duration;
-use sqlx::postgres::PgPoolOptions;
-use sqlx::{Pool, Postgres};
 use tokio::sync::Mutex;
 use tokio::time::sleep;
 use teloxide::prelude::*;
@@ -103,7 +101,6 @@ pub struct Config {
     pub blacklist: Blacklist,
     pub telegram: TelegramConfig,
     pub paper_trading: PaperTradingConfig,
-    pub database: DatabaseConfig,
 }
 
 pub struct Filters {
@@ -131,18 +128,11 @@ pub struct PaperTradingConfig {
     pub stop_loss_percent: f64,
 }
 
-pub struct DatabaseConfig {
-    pub url: String,
-}
-
 impl Config {
     pub fn new() -> Self {
-        let db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| "postgres://postgres:password@localhost/dexbot".to_string());
+        dotenv::dotenv().ok();
         Self {
-            queries: vec![
-                "pump".to_string(),
-                "moon".to_string(),
-            ],
+            queries: vec!["pump".to_string(), "moon".to_string()],
             filters: Filters {
                 min_liquidity_usd: 1000.0,
                 min_volume_h24_usd: 5000.0,
@@ -154,8 +144,8 @@ impl Config {
                 tokens: vec!["0x0000000000000000000000000000000000000000".to_string()],
             },
             telegram: TelegramConfig {
-                bot_token: std::env::var("TELEGRAM_BOT_TOKEN").unwrap_or_default(),
-                chat_id: std::env::var("TELEGRAM_CHAT_ID").unwrap_or_default(),
+                bot_token: std::env::var("TELEGRAM_BOT_TOKEN").unwrap_or_else(|_| "YOUR_BOT_TOKEN".to_string()),
+                chat_id: std::env::var("TELEGRAM_CHAT_ID").unwrap_or_else(|_| "YOUR_CHAT_ID".to_string()),
                 bonkbot_ref: "ref_code".to_string(),
             },
             paper_trading: PaperTradingConfig {
@@ -164,70 +154,7 @@ impl Config {
                 take_profit_percent: 50.0,
                 stop_loss_percent: 25.0,
             },
-            database: DatabaseConfig {
-                url: db_url,
-            },
         }
-    }
-}
-
-pub struct Database {
-    pub pool: Pool<Postgres>,
-}
-
-impl Database {
-    pub async fn new(url: &str) -> Result<Self> {
-        let pool = PgPoolOptions::new()
-            .max_connections(5)
-            .connect(url)
-            .await?;
-
-        // Initialize Schema
-        sqlx::query(
-            "CREATE TABLE IF NOT EXISTS scans (
-                id SERIAL PRIMARY KEY,
-                ts TIMESTAMPTZ NOT NULL,
-                address TEXT NOT NULL,
-                symbol TEXT NOT NULL,
-                pattern TEXT NOT NULL,
-                data JSONB NOT NULL
-            );
-            CREATE TABLE IF NOT EXISTS active_trades (
-                id SERIAL PRIMARY KEY,
-                address TEXT NOT NULL UNIQUE,
-                symbol TEXT NOT NULL,
-                entry_price DOUBLE PRECISION NOT NULL,
-                amount_sol DOUBLE PRECISION NOT NULL,
-                entry_time TIMESTAMPTZ NOT NULL
-            );
-            CREATE TABLE IF NOT EXISTS historical_trades (
-                id SERIAL PRIMARY KEY,
-                address TEXT NOT NULL,
-                symbol TEXT NOT NULL,
-                entry_price DOUBLE PRECISION NOT NULL,
-                exit_price DOUBLE PRECISION NOT NULL,
-                pnl_percent DOUBLE PRECISION NOT NULL,
-                entry_time TIMESTAMPTZ NOT NULL,
-                exit_time TIMESTAMPTZ NOT NULL
-            );"
-        )
-        .execute(&pool)
-        .await?;
-
-        Ok(Self { pool })
-    }
-
-    pub async fn log_scan(&self, pair: &Pair, pattern: MarketPattern) -> Result<()> {
-        sqlx::query(
-            "INSERT INTO scans (ts, address, symbol, pattern, data) VALUES (NOW(), $1, $2, $3, $4)"
-        )
-        .bind(&pair.pair_address)
-        .bind(&pair.base_token.symbol)
-        .bind(format!("{:?}", pattern))
-        .bind(json!(pair))
-        .execute(&self.pool)
-        .await?;
-        Ok(())
     }
 }
 
@@ -235,7 +162,7 @@ impl Database {
 // ANALYSIS ENGINE
 // =============================================================================
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Serialize)]
 pub enum MarketPattern {
     GoodCandidate,
     RugCandidate,
@@ -292,9 +219,8 @@ impl AnalysisEngine {
             }
         }
 
-        // Professional Signal detection
         if let Some(m5) = pair.price_change.m5 {
-            if m5 > 5.0 && m5 < 50.0 { // Healthy growth
+            if m5 > 5.0 && m5 < 50.0 {
                 return MarketPattern::GoodCandidate;
             }
         }
@@ -321,7 +247,7 @@ impl PaperTradingEngine {
     pub async fn process_signal(&self, pair: &Pair, config: &Config) {
         let mut trades = self.active_trades.lock().await;
         if trades.iter().any(|t| t.address == pair.base_token.address) {
-            return; // Already in trade
+            return;
         }
 
         if let Some(price_str) = &pair.price_usd {
@@ -351,13 +277,10 @@ impl PaperTradingEngine {
                         if let Some(price_str) = &pair.price_usd {
                             if let Ok(current_price) = price_str.parse::<f64>() {
                                 let pnl = ((current_price - trade.entry_price) / trade.entry_price) * 100.0;
-                                
                                 println!("📊 [PAPER TRADE] {} PnL: {:.2}%", trade.symbol, pnl);
 
                                 if pnl >= config.paper_trading.take_profit_percent || pnl <= -config.paper_trading.stop_loss_percent {
                                     println!("📉 [PAPER TRADE] EXIT: {} at {:.2}% PnL", trade.symbol, pnl);
-                                    
-                                    // Notify via Telegram
                                     let msg = format!(
                                         "🔔 *PAPER TRADE CLOSED*\n\nToken: {}\nResult: {:.2}%\nExit Price: ${:.8}",
                                         trade.symbol, pnl, current_price
@@ -366,7 +289,6 @@ impl PaperTradingEngine {
                                     if chat_id.0 != 0 {
                                         let _ = bot.send_message(chat_id, msg).parse_mode(teloxide::types::ParseMode::MarkdownV2).await;
                                     }
-
                                     to_remove.push(idx);
                                 }
                             }
@@ -374,45 +296,12 @@ impl PaperTradingEngine {
                     }
                 }
             }
-            sleep(Duration::from_millis(500)).await; // Prevent rate limit
+            sleep(Duration::from_millis(500)).await;
         }
 
         for idx in to_remove.into_iter().rev() {
             trades.remove(idx);
         }
-    }
-}
-
-// =============================================================================
-// BACKTESTING ENGINE
-// =============================================================================
-
-pub struct BacktestingEngine;
-
-impl BacktestingEngine {
-    pub async fn run(config: &Config) -> Result<()> {
-        println!("🧪 Starting Backtest from dex_data.jsonl...");
-        let file = std::fs::read_to_string("dex_data.jsonl")?;
-        let mut good_signals = 0;
-        let mut total_scans = 0;
-
-        for line in file.lines() {
-            if let Ok(record) = serde_json::from_str::<serde_json::Value>(line) {
-                total_scans += 1;
-                // Note: Simplified for backtest (does not re-verify Rugcheck in replay)
-                if record["pattern"] == "GoodCandidate" {
-                    good_signals += 1;
-                }
-            }
-        }
-
-        println!("📊 BACKTEST RESULTS:");
-        println!("Total Scans: {}", total_scans);
-        println!("Good Signals identified: {}", good_signals);
-        if total_scans > 0 {
-            println!("Signal Ratio: {:.2}%", (good_signals as f64 / total_scans as f64) * 100.0);
-        }
-        Ok(())
     }
 }
 
@@ -423,44 +312,21 @@ impl BacktestingEngine {
 #[tokio::main]
 async fn main() -> Result<()> {
     env_logger::init();
-    dotenv::dotenv().ok();
-    
-    let args: Vec<String> = std::env::args().collect();
-    let mut config = Config::new();
+    println!("🚀 Starting Consolidated DexBot (Lightweight Core)...");
 
-    if args.contains(&"--backtest".to_string()) {
-        BacktestingEngine::run(&config).await?;
-        return Ok(());
-    }
-
-    println!("🚀 Starting Consolidated DexBot v6.0 (PostgreSQL Active)...");
-
-    // Initialize Database
-    let db = match Database::new(&config.database.url).await {
-        Ok(d) => {
-            println!("✅ PostgreSQL Connected.");
-            Some(d)
-        }
-        Err(e) => {
-            eprintln!("⚠️ Database connection failed: {}. Falling back to JSONL only.", e);
-            None
-        }
-    };
-
+    let config = Config::new();
     let client = Client::builder().timeout(Duration::from_secs(10)).build()?;
     let bot = Bot::new(&config.telegram.bot_token);
-    let paper_engine = PaperTradingEngine::new();
+    let paper_engine = Arc::new(PaperTradingEngine::new());
 
     // Spawn monitoring task
-    let pe_mon = Arc::new(paper_engine);
-    let pe_mon_clone = Arc::clone(&pe_mon);
+    let pe_mon = Arc::clone(&paper_engine);
     let client_clone = client.clone();
     let bot_clone = bot.clone();
-    
     tokio::spawn(async move {
         loop {
             let mon_config = Config::new(); 
-            pe_mon_clone.monitor_trades(&client_clone, &mon_config, &bot_clone).await;
+            pe_mon.monitor_trades(&client_clone, &mon_config, &bot_clone).await;
             sleep(Duration::from_secs(30)).await;
         }
     });
@@ -473,8 +339,6 @@ async fn main() -> Result<()> {
             if let Ok(resp) = client.get(&dex_url).send().await {
                 if let Ok(data) = resp.json::<DexScreenerResponse>().await {
                     for pair in data.pairs {
-                        if config.blacklist.tokens.contains(&pair.pair_address) { continue; }
-
                         let rug_url = format!("https://api.rugcheck.xyz/v1/tokens/{}/report", pair.base_token.address);
                         let rug_report = if let Ok(r) = client.get(&rug_url).send().await {
                             r.json::<RugCheckResponse>().await.ok()
@@ -482,21 +346,11 @@ async fn main() -> Result<()> {
 
                         let pattern = AnalysisEngine::analyze_pair(&pair, &config, rug_report.as_ref());
 
-                        // Log to PG if connected
-                        if let Some(ref d) = db {
-                            let _ = d.log_scan(&pair, pattern.clone()).await;
-                        }
-
                         match &pattern {
-                            MarketPattern::RugcheckRisk | MarketPattern::BundledSupply => {
-                                println!("⛔ Security Risk: {} - Blacklisting.", pair.base_token.symbol);
-                                config.blacklist.tokens.push(pair.pair_address.clone());
-                            }
                             MarketPattern::GoodCandidate => {
                                 println!("✅ SIGNAL: {} found.", pair.base_token.symbol);
-                                
                                 if config.paper_trading.enabled {
-                                    pe_mon.process_signal(&pair, &config).await;
+                                    paper_engine.process_signal(&pair, &config).await;
                                 }
 
                                 let bonk_link = format!("https://t.me/bonkbot_bot?start={}_{}", config.telegram.bonkbot_ref, pair.base_token.address);
@@ -513,12 +367,11 @@ async fn main() -> Result<()> {
                             _ => {}
                         }
 
-                        // Local JSONL Backup
                         let record = json!({
                             "ts": Utc::now().timestamp(),
                             "addr": pair.pair_address,
                             "sym": pair.base_token.symbol,
-                            "pattern": format!("{:?}", pattern)
+                            "pattern": pattern
                         });
                         if let Ok(mut file) = OpenOptions::new().create(true).append(true).open("dex_data.jsonl") {
                             let _ = writeln!(file, "{}", record.to_string());
