@@ -1,87 +1,70 @@
-# 🧠 LPing: Solana Memecoin Agentic Trading System
-Autonomous Multi-Agent AI Trading Infrastructure for Solana Memecoins
+# 🤖 DexScreener Analysis Bot (Pure Rust)
 
-System Overview
-LPing is a Level 3 agentic AI trading system engineered exclusively for Solana memecoin markets. Operating across Raydium, Meteora, Orca, and PumpSwap, this architecture deploys 13 specialized AI agents that collaborate through secure inter-agent protocols to execute trading strategies, manage risk, detect arbitrage opportunities, and optimize returns in real-time. The system integrates advanced artificial intelligence methodologies—including reinforcement learning, NLP, computer vision, and graph neural networks—with high-performance blockchain infrastructure to navigate Solana's volatile memecoin ecosystem.
+A high-performance, professional-grade Rust bot designed to interact with the DexScreener API. This tool parses, logs, and analyzes token pairs in real-time to identify market patterns such as Rug Risks, Pumps, and Tier-1 transitions.
 
-Core Architecture
-Leadership & Strategy Layer
-Commander-in-Chief: Orchestrates system-wide objectives, capital allocation, and strategic pivots using reinforcement learning and predictive analytics
-Quantitative Strategist: Develops and backtests alpha-generating models through deep learning and statistical arbitrage frameworks
-Risk Assessor: Implements dynamic risk controls using real-time volatility modeling and black swan detection systems
+Built with a focus on speed, safety, and 100% Rust portability.
 
-Intelligence & Analysis Layer
-On-Chain Analyst: Processes blockchain data streams using graph neural networks to track whale movements and liquidity shifts
-Social Sentiment Analyst: Monitors global social platforms with transformer-based NLP for narrative emergence detection
-Liquidity Pool Analyst: Optimizes LP positioning through impermanent loss modeling and yield forecasting
-Arbitrage Scout: Identifies cross-DEX opportunities using graph theory and real-time price discrepancy algorithms
-Sniper Bot: Executes new launch entries with computer vision-assisted chart pattern recognition and MEV-resistant timing
+## 🚀 Key Features
 
-Execution & Operations Layer
-Execution Specialist: Implements gas-optimized trade routing across all supported DEXs with TWAP/VWAP algorithms
-Data Engineer: Maintains PostgreSQL data pipelines with real-time ingestion from blockchain and social APIs
-Security Auditor: Performs real-time smart contract vetting using bytecode analysis and honeypot detection models
-Treasury Manager: Automates profit distribution (80% to Phantom wallet every 6 hours) with minimum 1.6 SOL reserve enforcement
-Communications Coordinator: Manages A2A protocol communications and maintains audit logs through secure message routing
+- **Real-Time Monitoring**: Polls DexScreener for the latest pairs and trending tokens based on custom search queries.
+- **Fake Volume Detection**: Integrated heuristics to detect wash trading by analyzing Volume-to-Liquidity Ratios (VLR).
+- **Pattern Analysis Engine**:
+    - ⚠️ **Rug Risk**: Detects low liquidity vs abnormal volume/price drops.
+    - 🔥 **Pump Candidate**: Identifies tokens with rapid short-term buy pressure.
+    - 💎 **Tier-1 Potential**: Flags tokens with high market cap, consistent organic volume, and strong liquidity.
+- **100% Pure Rust Configuration**: No external JSON/YAML dependencies. All filters, blacklists, and scan settings are managed natively in `src/config.rs`.
+- **Persistent Metrics**: Logs all data to `dex_data.jsonl` for historical analysis and AI model training.
+- **Async Architecture**: Powered by `tokio` for multi-threaded, non-blocking execution.
 
-Technical Specifications
-AI/ML Stack
-Reinforcement Learning: Strategy optimization and execution parameter tuning
-Deep Learning: Price prediction (LSTM/Transformers) and volatility forecasting
-NLP: Social sentiment analysis (BERT variants) and narrative extraction
-Computer Vision: Early chart pattern recognition for new token launches
-Graph Neural Networks: On-chain relationship mapping and smart money tracking
-Unsupervised Learning: Anomaly detection for rug pulls and market manipulation
-Planning Algorithms: Multi-agent coordination and resource allocation
-Infrastructure
-Blockchain: Solana mainnet exclusively (no multi-chain support)
-DEX Integrations: Raydium, Meteora, Orca, PumpSwap
-Database: PostgreSQL with TimescaleDB extension for time-series data
-Security: AES-256 encryption for private keys at rest
-Communication: A2A protocol over Redis Pub/Sub with MCP compliance
-RAG Implementation: Local Chroma vector databases with Solana-specific knowledge graphs
-Language Ecosystem
-Python: Core AI/ML, strategic agents, and data engineering
-Rust: High-frequency trading components, blockchain interaction, and security modules
-TypeScript/JavaScript: Real-time communication, API integrations, and execution systems
-SQL: Complex financial queries and risk monitoring
-Operational Protocols
-Profit Distribution
-The Treasury Manager enforces strict capital allocation:
+## 🛠 Project Structure
 
-Every 6 hours, calculates net profit from trading activities
-Transfers 80% of profits to designated Phantom wallet
-Maintains minimum 1.6 SOL balance in operational wallet
-Reinvests remaining 20% capital into active strategies
-Security Framework
-Real-time smart contract auditing before any token interaction
-Multi-layered honeypot detection using bytecode pattern analysis
-Circuit breakers for abnormal market volatility (>50% price swings)
-Encrypted private key management with hardware security module (HSM) compatibility
-Performance Optimization
-Sub-second arbitrage detection across all integrated DEXs
-MEV-resistant transaction ordering via priority fee optimization
-Dynamic slippage tolerance based on real-time liquidity depth
-Multi-path routing for large orders to minimize market impact
-Deployment Requirements
-Hardware
-Minimum 32-core CPU with AVX-512 support
-128GB RAM for real-time data processing
-NVMe storage (2TB+) for blockchain data retention
-Enterprise-grade network infrastructure (<1ms latency to Solana RPCs)
-Software Dependencies
-Solana CLI v1.16+
-PostgreSQL 15+ with TimescaleDB
-Redis 7+ for message brokering
-Docker Engine 24+ for container orchestration
-Rust toolchain (stable)
-Python 3.11+ with scientific computing stack
-Compliance & Ethics
-This system operates under strict ethical guidelines:
+- `src/main.rs`: Core execution loop and orchestrator.
+- `src/config.rs`: Professional-grade configuration (Filters, Blacklists, Queries).
+- `src/analysis.rs`: Heuristic-based logic engine for market pattern detection.
+- `src/client.rs`: Async API client for DexScreener.
+- `src/models.rs`: Type-safe bindings for DexScreener API responses.
+- `src/storage.rs`: High-performance JSONL persistence layer.
 
-No market manipulation or wash trading
-Full compliance with Solana blockchain protocols
-Transparent profit distribution mechanisms
-Real-time audit logging of all trading decisions
-No interaction with sanctioned or blacklisted tokens
-LPing represents the convergence of agentic AI and decentralized finance—transforming Solana memecoin volatility into systematically optimized returns through autonomous intelligence.
+## 🏁 Getting Started
+
+### Prerequisites
+- [Rust](https://www.rust-lang.org/tools/install) (latest stable)
+
+### Installation
+```bash
+git clone https://github.com/syafiza/dex-bot.git
+cd dex-bot
+```
+
+### Running the Bot
+```bash
+cargo run --release
+```
+
+## ⚙️ Configuration
+
+To modify filters, add tokens to the blacklist, or change scan queries, edit [src/config.rs](file:///c:/Users/admin/OneDrive/Documents/AI%20Research/dex-bot/src/config.rs):
+
+```rust
+// Example config logic in src/config.rs
+pub fn new() -> Self {
+    Self {
+        filters: Filters {
+            min_liquidity_usd: 1000.0,
+            max_vlr: 50.0, // Flag if Volume/Liquidity > 50
+            ..
+        },
+        blacklist: Blacklist {
+            tokens: vec!["...".to_string()],
+            ..
+        },
+        queries: vec!["pump".to_string(), "pepe".to_string()],
+    }
+}
+```
+
+## 📊 Data Output
+The bot generates `dex_data.jsonl` in the root directory. Each line is a JSON object containing snapshot metrics of the pairs identified by the bot, perfect for further data science or pattern training.
+
+## ⚖️ License
+MIT License
