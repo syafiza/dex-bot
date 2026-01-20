@@ -16,21 +16,22 @@ Built with a focus on speed, safety, and 100% Rust portability.
 - **Persistent Metrics**: Logs all data to `dex_data.jsonl` for historical analysis and AI model training.
 - **Async Architecture**: Powered by `tokio` for multi-threaded, non-blocking execution.
 
-## 🏁 Launch Guide
-
-### 1. Prerequisites
-- [Rust](https://www.rust-lang.org/tools/install) installed.
-- A Telegram Bot (create via [@BotFather](https://t.me/botfather)).
-- Your Telegram Chat ID (get via [@userinfobot](https://t.me/userinfobot)).
-
 ### 2. Configuration
-Open `src/main.rs` and update the `TelegramConfig` section with your credentials:
+Open `src/main.rs` and update the `Config` section:
 
 ```rust
+// Telegram Credentials
 telegram: TelegramConfig {
     bot_token: "YOUR_BOT_TOKEN".to_string(),
     chat_id: "YOUR_CHAT_ID".to_string(),
     bonkbot_ref: "your_ref".to_string(),
+},
+// Paper Trading Settings
+paper_trading: PaperTradingConfig {
+    enabled: true,
+    buy_amount_sol: 0.1,
+    take_profit_percent: 50.0,
+    stop_loss_percent: 25.0,
 },
 ```
 
@@ -40,11 +41,12 @@ cargo run --release
 ```
 
 ## 🛠 Project Structure (Unified)
-- `src/main.rs`: Contains the entire system logic (Scanner, Analysis, Security, Execution).
-- `dex_data.jsonl`: Local metrics log for all scanned tokens.
+- `src/main.rs`: Scanner, Analysis, Security Engine, and Paper Trading Logic.
+- `dex_data.jsonl`: Local metrics log.
 
-## ⚙️ Security Heuristics
-- **Rugcheck.xyz**: Only "Good" status contracts are alerted.
+## ⚙️ Key Engine Features
+- **Paper Trading**: Automatically simulates buys on "Good" signals and monitors PnL vs TP/SL.
+- **Rugcheck.xyz**: Only "Good" status contracts are considered.
 - **Bundle Detection**: Automatic skip if >25% supply is clustered.
 - **Fake Volume**: Flags turnover that exceeds liquidity by 50x.
 
