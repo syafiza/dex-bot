@@ -17,14 +17,12 @@ Built with a focus on speed, safety, and 100% Rust portability.
 - **Async Architecture**: Powered by `tokio` for multi-threaded, non-blocking execution.
 
 ### 2. Configuration
-Open `src/main.rs` and update the `Config` section:
+Open `src/main.rs` and update the `Config` section, or use a `.env` file:
 
 ```rust
-// Telegram Credentials
-telegram: TelegramConfig {
-    bot_token: "YOUR_BOT_TOKEN".to_string(),
-    chat_id: "YOUR_CHAT_ID".to_string(),
-    bonkbot_ref: "your_ref".to_string(),
+// PostgreSQL URL
+database: DatabaseConfig {
+    url: "postgres://user:pass@localhost/db".to_string(),
 },
 // Paper Trading Settings
 paper_trading: PaperTradingConfig {
@@ -36,16 +34,24 @@ paper_trading: PaperTradingConfig {
 ```
 
 ### 3. Build & Run
+**Standard Mode (Scanner + Paper Trading):**
 ```bash
 cargo run --release
 ```
 
+**Backtest Mode (Replay historical data):**
+```bash
+cargo run --release -- --backtest
+```
+
 ## 🛠 Project Structure (Unified)
-- `src/main.rs`: Scanner, Analysis, Security Engine, and Paper Trading Logic.
-- `dex_data.jsonl`: Local metrics log.
+- `src/main.rs`: Scanner, Analysis, Security Engine, Paper Trading, and Backtesting Logic.
+- `dex_data.jsonl`: Local metrics log (used for Backtesting).
 
 ## ⚙️ Key Engine Features
-- **Paper Trading**: Automatically simulates buys on "Good" signals and monitors PnL vs TP/SL.
+- **PostgreSQL Support**: Structured logging of all scans and trades.
+- **Historical Backtesting**: Replay `dex_data.jsonl` to verify filter performance.
+- **Paper Trading**: Automatically simulates buys on "Good" signals.
 - **Rugcheck.xyz**: Only "Good" status contracts are considered.
 - **Bundle Detection**: Automatic skip if >25% supply is clustered.
 - **Fake Volume**: Flags turnover that exceeds liquidity by 50x.

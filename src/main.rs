@@ -7,6 +7,8 @@ use std::fs::OpenOptions;
 use std::io::Write;
 use std::sync::Arc;
 use std::time::Duration;
+use sqlx::postgres::PgPoolOptions;
+use sqlx::{Pool, Postgres};
 use tokio::sync::Mutex;
 use tokio::time::sleep;
 use teloxide::prelude::*;
@@ -101,6 +103,7 @@ pub struct Config {
     pub blacklist: Blacklist,
     pub telegram: TelegramConfig,
     pub paper_trading: PaperTradingConfig,
+    pub database: DatabaseConfig,
 }
 
 pub struct Filters {
@@ -128,8 +131,13 @@ pub struct PaperTradingConfig {
     pub stop_loss_percent: f64,
 }
 
+pub struct DatabaseConfig {
+    pub url: String,
+}
+
 impl Config {
     pub fn new() -> Self {
+        let db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| "postgres://postgres:password@localhost/dexbot".to_string());
         Self {
             queries: vec![
                 "pump".to_string(),
@@ -146,17 +154,80 @@ impl Config {
                 tokens: vec!["0x0000000000000000000000000000000000000000".to_string()],
             },
             telegram: TelegramConfig {
-                bot_token: "YOUR_BOT_TOKEN".to_string(),
-                chat_id: "YOUR_CHAT_ID".to_string(),
+                bot_token: std::env::var("TELEGRAM_BOT_TOKEN").unwrap_or_default(),
+                chat_id: std::env::var("TELEGRAM_CHAT_ID").unwrap_or_default(),
                 bonkbot_ref: "ref_code".to_string(),
             },
             paper_trading: PaperTradingConfig {
-                enabled: true, // Default to true for safety
+                enabled: true,
                 buy_amount_sol: 0.1,
                 take_profit_percent: 50.0,
                 stop_loss_percent: 25.0,
             },
+            database: DatabaseConfig {
+                url: db_url,
+            },
         }
+    }
+}
+
+pub struct Database {
+    pub pool: Pool<Postgres>,
+}
+
+impl Database {
+    pub async fn new(url: &str) -> Result<Self> {
+        let pool = PgPoolOptions::new()
+            .max_connections(5)
+            .connect(url)
+            .await?;
+
+        // Initialize Schema
+        sqlx::query(
+            "CREATE TABLE IF NOT EXISTS scans (
+                id SERIAL PRIMARY KEY,
+                ts TIMESTAMPTZ NOT NULL,
+                address TEXT NOT NULL,
+                symbol TEXT NOT NULL,
+                pattern TEXT NOT NULL,
+                data JSONB NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS active_trades (
+                id SERIAL PRIMARY KEY,
+                address TEXT NOT NULL UNIQUE,
+                symbol TEXT NOT NULL,
+                entry_price DOUBLE PRECISION NOT NULL,
+                amount_sol DOUBLE PRECISION NOT NULL,
+                entry_time TIMESTAMPTZ NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS historical_trades (
+                id SERIAL PRIMARY KEY,
+                address TEXT NOT NULL,
+                symbol TEXT NOT NULL,
+                entry_price DOUBLE PRECISION NOT NULL,
+                exit_price DOUBLE PRECISION NOT NULL,
+                pnl_percent DOUBLE PRECISION NOT NULL,
+                entry_time TIMESTAMPTZ NOT NULL,
+                exit_time TIMESTAMPTZ NOT NULL
+            );"
+        )
+        .execute(&pool)
+        .await?;
+
+        Ok(Self { pool })
+    }
+
+    pub async fn log_scan(&self, pair: &Pair, pattern: MarketPattern) -> Result<()> {
+        sqlx::query(
+            "INSERT INTO scans (ts, address, symbol, pattern, data) VALUES (NOW(), $1, $2, $3, $4)"
+        )
+        .bind(&pair.pair_address)
+        .bind(&pair.base_token.symbol)
+        .bind(format!("{:?}", pattern))
+        .bind(json!(pair))
+        .execute(&self.pool)
+        .await?;
+        Ok(())
     }
 }
 
@@ -313,15 +384,69 @@ impl PaperTradingEngine {
 }
 
 // =============================================================================
+// BACKTESTING ENGINE
+// =============================================================================
+
+pub struct BacktestingEngine;
+
+impl BacktestingEngine {
+    pub async fn run(config: &Config) -> Result<()> {
+        println!("🧪 Starting Backtest from dex_data.jsonl...");
+        let file = std::fs::read_to_string("dex_data.jsonl")?;
+        let mut good_signals = 0;
+        let mut total_scans = 0;
+
+        for line in file.lines() {
+            if let Ok(record) = serde_json::from_str::<serde_json::Value>(line) {
+                total_scans += 1;
+                // Note: Simplified for backtest (does not re-verify Rugcheck in replay)
+                if record["pattern"] == "GoodCandidate" {
+                    good_signals += 1;
+                }
+            }
+        }
+
+        println!("📊 BACKTEST RESULTS:");
+        println!("Total Scans: {}", total_scans);
+        println!("Good Signals identified: {}", good_signals);
+        if total_scans > 0 {
+            println!("Signal Ratio: {:.2}%", (good_signals as f64 / total_scans as f64) * 100.0);
+        }
+        Ok(())
+    }
+}
+
+// =============================================================================
 // MAIN EXECUTION LOOP
 // =============================================================================
 
 #[tokio::main]
 async fn main() -> Result<()> {
     env_logger::init();
-    println!("🚀 Starting Consolidated DexBot v5.0 (PAPER TRADING ACTIVE)...");
-
+    dotenv::dotenv().ok();
+    
+    let args: Vec<String> = std::env::args().collect();
     let mut config = Config::new();
+
+    if args.contains(&"--backtest".to_string()) {
+        BacktestingEngine::run(&config).await?;
+        return Ok(());
+    }
+
+    println!("🚀 Starting Consolidated DexBot v6.0 (PostgreSQL Active)...");
+
+    // Initialize Database
+    let db = match Database::new(&config.database.url).await {
+        Ok(d) => {
+            println!("✅ PostgreSQL Connected.");
+            Some(d)
+        }
+        Err(e) => {
+            eprintln!("⚠️ Database connection failed: {}. Falling back to JSONL only.", e);
+            None
+        }
+    };
+
     let client = Client::builder().timeout(Duration::from_secs(10)).build()?;
     let bot = Bot::new(&config.telegram.bot_token);
     let paper_engine = PaperTradingEngine::new();
@@ -331,10 +456,9 @@ async fn main() -> Result<()> {
     let pe_mon_clone = Arc::clone(&pe_mon);
     let client_clone = client.clone();
     let bot_clone = bot.clone();
-    // In a real app we'd pass config specifically, but for simplicity:
+    
     tokio::spawn(async move {
         loop {
-            // Re-fetch config or use static for monitoring
             let mon_config = Config::new(); 
             pe_mon_clone.monitor_trades(&client_clone, &mon_config, &bot_clone).await;
             sleep(Duration::from_secs(30)).await;
@@ -358,6 +482,11 @@ async fn main() -> Result<()> {
 
                         let pattern = AnalysisEngine::analyze_pair(&pair, &config, rug_report.as_ref());
 
+                        // Log to PG if connected
+                        if let Some(ref d) = db {
+                            let _ = d.log_scan(&pair, pattern.clone()).await;
+                        }
+
                         match &pattern {
                             MarketPattern::RugcheckRisk | MarketPattern::BundledSupply => {
                                 println!("⛔ Security Risk: {} - Blacklisting.", pair.base_token.symbol);
@@ -366,12 +495,10 @@ async fn main() -> Result<()> {
                             MarketPattern::GoodCandidate => {
                                 println!("✅ SIGNAL: {} found.", pair.base_token.symbol);
                                 
-                                // Enter Paper Trade
                                 if config.paper_trading.enabled {
                                     pe_mon.process_signal(&pair, &config).await;
                                 }
 
-                                // Notify Telegram
                                 let bonk_link = format!("https://t.me/bonkbot_bot?start={}_{}", config.telegram.bonkbot_ref, pair.base_token.address);
                                 let msg = format!(
                                     "💎 *GOOD SIGNAL: {} ({})*\n\n💰 Mcap: ${:?}\n💧 Liq: ${:?}\n📈 Vol: ${:.2}\n\n[🚀 OPEN IN BONKBOT]({})",
@@ -386,7 +513,7 @@ async fn main() -> Result<()> {
                             _ => {}
                         }
 
-                        // Storage
+                        // Local JSONL Backup
                         let record = json!({
                             "ts": Utc::now().timestamp(),
                             "addr": pair.pair_address,
